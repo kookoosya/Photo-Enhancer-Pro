@@ -1,0 +1,9 @@
+# Models directory
+
+Place optional AI model weights here:
+
+- `yolo11n.pt` — YOLO11 for object detection (optional)
+- `RealESRGAN_x4plus.pth` — Real-ESRGAN upscaler (optional)
+- SAM2 weights for advanced segmentation (optional)
+
+The application works fully offline without these models using OpenCV-based processing.

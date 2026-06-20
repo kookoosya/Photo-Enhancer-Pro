@@ -1,0 +1,37 @@
+{
+  "app_name": "Photo Enhancer Pro",
+  "version": "1.0.0",
+  "default_preset": "iphone_pro",
+  "supported_formats": ["jpg", "jpeg", "png", "webp", "heic", "tiff", "tif"],
+  "processing": {
+    "max_workers": 4,
+    "use_gpu": true,
+    "chunk_size": 10,
+    "jpeg_quality": 95,
+    "preview_max_size": 1200
+  },
+  "paths": {
+    "models_dir": "models",
+    "logs_dir": "logs",
+    "output_suffix": "_Enhanced"
+  },
+  "features": {
+    "keep_exif": true,
+    "create_zip": true,
+    "overwrite_existing": false,
+    "preview_before_save": false,
+    "duplicate_detection": true,
+    "blur_detection": true,
+    "best_photo_ranking": true
+  },
+  "segmentation": {
+    "use_yolo": false,
+    "use_sam": false,
+    "fallback_color_based": true
+  },
+  "upscale": {
+    "enabled": false,
+    "scale": 2,
+    "model": "realesrgan"
+  }
+}
