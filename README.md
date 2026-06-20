@@ -55,7 +55,7 @@ Photo Enhancer Pro automatically processes folders or ZIP archives of photos, ap
 ### Installation
 
 ```bash
-git clone https://github.com/gmxreply/Photo-Enhancer-Pro.git
+git clone https://github.com/kookoosya/Photo-Enhancer-Pro.git
 cd Photo-Enhancer-Pro
 python -m venv venv
 

@@ -55,8 +55,8 @@ photo-enhancer-pro = "main:main"
 pep-cli = "cli:main"
 
 [project.urls]
-Homepage = "https://github.com/gmxreply/Photo-Enhancer-Pro"
-Repository = "https://github.com/gmxreply/Photo-Enhancer-Pro"
+Homepage = "https://github.com/kookoosya/Photo-Enhancer-Pro"
+Repository = "https://github.com/kookoosya/Photo-Enhancer-Pro"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -99,10 +99,13 @@ class PhotoEnhancerApp:
         preview_save: bool,
         duplicate_det: bool,
         blur_det: bool,
-    ) -> tuple[str, float, str, np.ndarray | None, np.ndarray | None, np.ndarray | None]:
+    ) -> tuple[
+        str, float, str,
+        np.ndarray | None, np.ndarray | None, tuple | None, np.ndarray | None,
+    ]:
         """Start batch processing."""
         if self._processing:
-            return "Already processing...", 0.0, "", None, None, None
+            return "Already processing...", 0.0, "", None, None, None, None
 
         input_path: Path | None = None
         if input_zip and Path(input_zip).exists():
@@ -111,7 +114,7 @@ class PhotoEnhancerApp:
             input_path = Path(input_folder)
 
         if input_path is None:
-            return "Please select a folder or ZIP file.", 0.0, "", None, None, None
+            return "Please select a folder or ZIP file.", 0.0, "", None, None, None, None
 
         options = ProcessingOptions(
             preset_name=preset,
@@ -183,7 +186,11 @@ class PhotoEnhancerApp:
                 eta_str = self._format_time(state["eta"])
             time.sleep(0.3)
 
-        return status, progress, eta_str, preview_before, preview_after, histogram
+        return status, progress, eta_str, preview_before, preview_after, (
+            (preview_before, preview_after)
+            if preview_before is not None and preview_after is not None
+            else None
+        ), histogram
 
     def get_live_progress(self) -> tuple[float, str, str]:
         """Get current progress for live updates."""
@@ -264,6 +271,11 @@ class PhotoEnhancerApp:
             with gr.Row():
                 with gr.Column(scale=1):
                     gr.Markdown("### Input")
+                    drop_zone = gr.File(
+                        label="Drag & Drop Folder or ZIP",
+                        file_count="multiple",
+                        type="filepath",
+                    )
                     input_folder = gr.Textbox(
                         label="Input Folder Path",
                         placeholder="C:\\Photos\\Vacation",
@@ -314,6 +326,11 @@ class PhotoEnhancerApp:
                     with gr.Row():
                         preview_before = gr.Image(label="Before", type="numpy")
                         preview_after = gr.Image(label="After", type="numpy")
+                    comparison_slider = gr.ImageSlider(
+                        label="Before / After Comparison",
+                        type="numpy",
+                        height=400,
+                    )
                     histogram = gr.Image(label="Histogram", type="numpy")
 
                     system_status = gr.Textbox(label="System / GPU Monitor", lines=4)
@@ -328,9 +345,20 @@ class PhotoEnhancerApp:
                 ],
                 outputs=[
                     status_display, progress_bar, eta_display,
-                    preview_before, preview_after, histogram,
+                    preview_before, preview_after, comparison_slider, histogram,
                 ],
             )
+
+            def handle_drop(files: list[str] | None) -> tuple[str, str]:
+                if not files:
+                    return "", ""
+                first = Path(files[0])
+                if first.suffix.lower() == ".zip":
+                    return "", str(first)
+                folder = str(first.parent if first.is_file() else first)
+                return folder, ""
+
+            drop_zone.change(fn=handle_drop, inputs=drop_zone, outputs=[input_folder, input_zip])
 
             open_folder_btn.click(fn=app.open_folder, outputs=status_display)
             open_zip_btn.click(fn=app.open_zip, outputs=status_display)
