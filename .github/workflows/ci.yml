@@ -35,6 +35,9 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v --tb=short -m "not performance"
 
+      - name: Generate project report
+        run: python tools/project_report.py
+
   build-windows:
     runs-on: windows-latest
     needs: test

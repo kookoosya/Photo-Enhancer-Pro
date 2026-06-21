@@ -165,8 +165,33 @@ photo-enhancer-pro/
 ├── build/                  # Build scripts
 ├── installer/              # Inno Setup
 ├── tests/                  # 23 tests
+├── tools/                  # Project analysis tools
+│   └── project_report.py   # Run after major changes
+├── reports/                # Generated health reports
 └── PhotoEnhancerPro.spec   # PyInstaller
 ```
+
+---
+
+## Project Health Report
+
+After every major change:
+
+```bash
+python tools/project_report.py
+```
+
+Generates reports in `reports/`:
+
+| File | Description |
+|------|-------------|
+| `PROJECT_REPORT.md` | Master summary |
+| `architecture_report.md` | Layers, modules, LOC |
+| `dependency_graph.md` | Import graph + `.dot` |
+| `quality_report.md` | Tests, ruff, coverage |
+| `benchmark.md` | Performance timings |
+
+Options: `--skip-benchmark`, `--quality-only`, `--benchmark-only`
 
 ---
 

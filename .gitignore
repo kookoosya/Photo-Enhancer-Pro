@@ -57,7 +57,9 @@ Thumbs.db
 desktop.ini
 
 # Gradio
-gradio_cached_examples/
+# Generated reports (except .gitkeep) — regenerate with: python tools/project_report.py
+reports/*
+!reports/.gitkeep
 
 # Build artifacts
 build/PhotoEnhancerPro/
