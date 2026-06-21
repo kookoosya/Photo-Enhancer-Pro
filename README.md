@@ -89,7 +89,7 @@ python main.py
 ### Windows executable
 
 ```powershell
-.\build\build_windows.ps1
+.\scripts\build_windows.ps1
 ```
 
 Output:
