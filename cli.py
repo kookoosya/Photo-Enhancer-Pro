@@ -44,9 +44,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.gui:
-        from gui import launch_gui
-        launch_gui()
-        return 0
+        from ui.app import run_app
+        return run_app()
 
     level = logging.DEBUG if args.verbose else logging.INFO
     setup_logging(level=level)

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -172,22 +174,18 @@ class ProcessingPipeline:
         quality_scores: dict[str, float] = {}
         blur_list: list[str] = []
 
-        workers = min(self.config.processing.max_workers, len(images))
-        use_threads = True  # I/O bound + OpenCV thread safety
+        workers = min(self.config.processing.max_workers, len(images), 8)
+        progress_lock = threading.Lock()
+        completed_count = 0
 
-        for idx, img_path in enumerate(images):
+        def process_one(idx: int, img_path: Path) -> tuple[int, Path, bool, str | None, object]:
             if self._cancelled:
-                result.skipped += len(images) - idx
-                break
-
+                return idx, img_path, False, "cancelled", None
             rel_path = img_path.relative_to(source_dir)
             dest_path = output_dir / rel_path
             dest_path.parent.mkdir(parents=True, exist_ok=True)
-
-            iter_start = time.time()
             preview_before = None
             preview_after = None
-
             if progress_callback:
                 try:
                     bgr_before, _ = load_image(img_path)
@@ -196,60 +194,73 @@ class ProcessingPipeline:
                     )
                 except Exception:
                     pass
-
             success, error = process_single_image(
                 img_path, dest_path, self.preset, self.options
             )
-
-            if success:
-                if error is None:
-                    result.processed += 1
-                else:
-                    result.skipped += 1
-
-                if self.options.duplicate_detection or self.options.blur_detection:
-                    try:
-                        bgr, pil_img = load_image(img_path)
-                        if self.options.duplicate_detection:
-                            hashes[str(img_path)] = perceptual_hash(pil_img)
-                        if self.options.blur_detection:
-                            score = blur_score(bgr)
-                            if score < 100:
-                                blur_list.append(str(img_path))
-                        if self.options.best_photo_ranking:
-                            quality_scores[str(img_path)] = quality_score(bgr)
-                    except Exception:
-                        pass
-
-                if progress_callback and preview_before is not None:
-                    try:
-                        bgr_after, _ = load_image(dest_path)
-                        preview_after = resize_for_preview(
-                            bgr_after, self.config.processing.preview_max_size
-                        )
-                    except Exception:
-                        pass
-            else:
-                result.failed += 1
-                if error:
-                    result.errors.append(f"{img_path.name}: {error}")
-
-            elapsed = time.time() - start_time
-            avg_per_image = elapsed / (idx + 1)
-            remaining = avg_per_image * (len(images) - idx - 1)
-
-            if progress_callback:
-                progress_callback(
-                    ProgressInfo(
-                        current=idx + 1,
-                        total=len(images),
-                        filename=img_path.name,
-                        elapsed=elapsed,
-                        estimated_remaining=remaining,
-                        preview_before=preview_before,
-                        preview_after=preview_after,
+            if success and progress_callback and preview_before is not None:
+                try:
+                    bgr_after, _ = load_image(dest_path)
+                    preview_after = resize_for_preview(
+                        bgr_after, self.config.processing.preview_max_size
                     )
-                )
+                except Exception:
+                    pass
+            return idx, img_path, success, error, (preview_before, preview_after)
+
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {
+                executor.submit(process_one, idx, img_path): (idx, img_path)
+                for idx, img_path in enumerate(images)
+            }
+            for future in as_completed(futures):
+                if self._cancelled:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                    break
+                idx, img_path, success, error, previews = future.result()
+                preview_before, preview_after = previews if previews else (None, None)
+
+                if success:
+                    if error is None:
+                        result.processed += 1
+                    else:
+                        result.skipped += 1
+                    if self.options.duplicate_detection or self.options.blur_detection:
+                        try:
+                            bgr, pil_img = load_image(img_path)
+                            if self.options.duplicate_detection:
+                                hashes[str(img_path)] = perceptual_hash(pil_img)
+                            if self.options.blur_detection:
+                                score = blur_score(bgr)
+                                if score < 100:
+                                    blur_list.append(str(img_path))
+                            if self.options.best_photo_ranking:
+                                quality_scores[str(img_path)] = quality_score(bgr)
+                        except Exception:
+                            pass
+                else:
+                    if error != "cancelled":
+                        result.failed += 1
+                        if error:
+                            result.errors.append(f"{img_path.name}: {error}")
+
+                with progress_lock:
+                    completed_count += 1
+                    elapsed = time.time() - start_time
+                    avg_per_image = elapsed / completed_count
+                    remaining = avg_per_image * (len(images) - completed_count)
+
+                if progress_callback:
+                    progress_callback(
+                        ProgressInfo(
+                            current=completed_count,
+                            total=len(images),
+                            filename=img_path.name,
+                            elapsed=elapsed,
+                            estimated_remaining=remaining,
+                            preview_before=preview_before,
+                            preview_after=preview_after,
+                        )
+                    )
 
         if self.options.duplicate_detection and hashes:
             hash_map = {k: v for k, v in hashes.items()}

@@ -29,6 +29,25 @@
     "use_sam": false,
     "fallback_color_based": true
   },
+  "pipeline_stages": [
+    "segmentation",
+    "lens_correction",
+    "white_balance",
+    "exposure",
+    "highlight_recovery",
+    "shadow_recovery",
+    "tone_mapping",
+    "local_contrast",
+    "micro_contrast",
+    "texture",
+    "dehaze",
+    "color_balance",
+    "regional_enhance",
+    "noise_reduction",
+    "sharpening",
+    "final_optimization",
+    "safety_blend"
+  ],
   "upscale": {
     "enabled": false,
     "scale": 2,

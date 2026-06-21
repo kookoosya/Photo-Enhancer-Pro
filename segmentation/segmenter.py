@@ -8,8 +8,6 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-from config import get_config
-
 logger = logging.getLogger("photo_enhancer.segmentation")
 
 
@@ -43,6 +41,8 @@ class SceneSegmenter:
     """Detect scene regions using color heuristics and optional AI models."""
 
     def __init__(self) -> None:
+        from config import get_config
+
         self.config = get_config()
         self._yolo_model = None
         if self.config.segmentation.use_yolo:
@@ -90,16 +90,24 @@ class SceneSegmenter:
         )
 
     def _detect_sky(self, hsv: np.ndarray, h: int, w: int) -> np.ndarray:
-        """Detect sky region using color and position heuristics."""
-        blue_mask = cv2.inRange(hsv, (90, 20, 120), (130, 180, 255))
-        light_mask = cv2.inRange(hsv, (0, 0, 180), (180, 60, 255))
-        position_weight = np.zeros((h, w), dtype=np.float32)
-        position_weight[:h // 3, :] = 1.0
-        position_weight[h // 3:h // 2, :] = 0.5
-        combined = (blue_mask.astype(np.float32) + light_mask.astype(np.float32)) / 2.0
-        combined *= position_weight
-        _, mask = cv2.threshold(combined.astype(np.uint8), 80, 255, cv2.THRESH_BINARY)
-        return mask
+        """Detect sky using color, luminance gradient, and position."""
+        blue_mask = cv2.inRange(hsv, (90, 15, 100), (135, 200, 255))
+        light_mask = cv2.inRange(hsv, (0, 0, 170), (180, 70, 255))
+        v_ch = hsv[:, :, 2].astype(np.float32)
+        grad_y = cv2.Sobel(v_ch, cv2.CV_32F, 0, 1, ksize=3)
+        smooth_upper = (grad_y > -5).astype(np.uint8) * 255
+        position = np.zeros((h, w), dtype=np.float32)
+        position[: max(1, h // 3), :] = 1.0
+        position[h // 3 : h // 2, :] = 0.6
+        combined = (
+            blue_mask.astype(np.float32) * 0.5
+            + light_mask.astype(np.float32) * 0.4
+            + smooth_upper.astype(np.float32) * 0.3
+        )
+        combined *= position
+        _, mask = cv2.threshold(combined.astype(np.uint8), 70, 255, cv2.THRESH_BINARY)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        return cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
     def _detect_water(self, hsv: np.ndarray, lab: np.ndarray) -> np.ndarray:
         """Detect water bodies."""

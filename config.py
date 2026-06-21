@@ -7,6 +7,26 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+DEFAULT_PIPELINE_STAGES = [
+    "segmentation",
+    "lens_correction",
+    "white_balance",
+    "exposure",
+    "highlight_recovery",
+    "shadow_recovery",
+    "tone_mapping",
+    "local_contrast",
+    "micro_contrast",
+    "texture",
+    "dehaze",
+    "color_balance",
+    "regional_enhance",
+    "noise_reduction",
+    "sharpening",
+    "final_optimization",
+    "safety_blend",
+]
+
 PROJECT_ROOT = Path(__file__).resolve().parent
 CONFIG_PATH = PROJECT_ROOT / "config.json"
 
@@ -72,6 +92,7 @@ class AppConfig:
     supported_formats: list[str] = field(
         default_factory=lambda: ["jpg", "jpeg", "png", "webp", "heic", "tiff", "tif"]
     )
+    pipeline_stages: list[str] = field(default_factory=list)
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
     paths: PathConfig = field(default_factory=PathConfig)
     features: FeatureConfig = field(default_factory=FeatureConfig)
@@ -113,6 +134,7 @@ def load_config(path: Path | None = None) -> AppConfig:
             "supported_formats",
             ["jpg", "jpeg", "png", "webp", "heic", "tiff", "tif"],
         ),
+        pipeline_stages=data.get("pipeline_stages", list(DEFAULT_PIPELINE_STAGES)),
         processing=ProcessingConfig(**data.get("processing", {})),
         paths=PathConfig(**data.get("paths", {})),
         features=FeatureConfig(**data.get("features", {})),
@@ -129,6 +151,7 @@ def save_config(config: AppConfig, path: Path | None = None) -> None:
         "version": config.version,
         "default_preset": config.default_preset,
         "supported_formats": config.supported_formats,
+        "pipeline_stages": config.pipeline_stages,
         "processing": {
             "max_workers": config.processing.max_workers,
             "use_gpu": config.processing.use_gpu,

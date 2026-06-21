@@ -10,7 +10,7 @@ readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
 authors = [{ name = "Photo Enhancer Pro Team" }]
-keywords = ["photo", "enhancement", "computer-vision", "iphone", "gradio"]
+keywords = ["photo", "enhancement", "computer-vision", "iphone", "pyside6", "desktop"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: End Users/Desktop",
@@ -23,7 +23,7 @@ dependencies = [
     "opencv-python-headless>=4.9.0",
     "numpy>=1.26.0",
     "Pillow>=10.2.0",
-    "gradio>=4.44.0",
+    "PySide6>=6.6.0",
     "piexif>=1.1.3",
     "pillow-heif>=0.15.0",
     "imagehash>=4.3.1",
@@ -45,8 +45,10 @@ ai = [
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
+    "pytest-qt>=4.4.0",
     "ruff>=0.3.0",
     "mypy>=1.8.0",
+    "pyinstaller>=6.0.0",
 ]
 all = ["photo-enhancer-pro[gpu,ai,dev]"]
 
@@ -60,11 +62,14 @@ Repository = "https://github.com/kookoosya/Photo-Enhancer-Pro"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["utils*", "styles*", "segmentation*", "upscale*", "noise*"]
+include = ["utils*", "styles*", "segmentation*", "upscale*", "noise*", "processing*", "core*", "app*", "ui*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = [
+    "performance: performance benchmark tests",
+]
 
 [tool.ruff]
 line-length = 100
