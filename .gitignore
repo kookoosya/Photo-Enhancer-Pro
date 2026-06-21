@@ -60,7 +60,11 @@ desktop.ini
 gradio_cached_examples/
 
 # Build artifacts
-build/
+build/PhotoEnhancerPro/
+build/*.toc
+build/*.html
+build/*.pyz
+!build/build_windows.ps1
 dist/
 *.spec.bak
 installer/output/
